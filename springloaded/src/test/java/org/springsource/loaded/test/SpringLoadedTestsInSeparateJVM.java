@@ -85,6 +85,12 @@ public class SpringLoadedTestsInSeparateJVM extends SpringLoadedTests {
 	}
 
 	@Test
+	public void githubIssue107() throws Exception {
+		JVMOutput output = jvm.run("org.springsource.loaded.test.SerializationTest", false);
+		assertStdout("SUCCESS!!", output);
+	}
+
+	@Test
 	public void testReferenceInstanceMethodOfObject() throws Exception {
 		JVMOutput jo = null;
 
