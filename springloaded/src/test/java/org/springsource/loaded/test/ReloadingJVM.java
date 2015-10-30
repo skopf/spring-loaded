@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -106,6 +107,21 @@ public class ReloadingJVM {
 			if (DEBUG_CLIENT_SIDE) {
 				System.out.println("java.home=" + System.getProperty("java.home"));
 			}
+			ArrayList<String> cmdArray = new ArrayList<String>();
+			cmdArray.add(System.getProperty("java.home") + "/bin/java");
+			cmdArray.add("-noverify");
+			cmdArray.add("-javaagent:" + agentJarLocation);
+			cmdArray.add("-cp");
+			cmdArray.add(javaclasspath);
+			if (AGENT_OPTION_STRING.length() > 0) {
+				cmdArray.add(AGENT_OPTION_STRING);
+			}
+			if (debug) {
+				cmdArray.add("-Xdebug");
+				cmdArray.add("-Xrunjdwp:transport=dt_socket,address=5100,server=y,suspend=y");
+			}
+			cmdArray.add(ReloadingJVMCommandProcess.class.getName());
+			/*
 			process = Runtime.getRuntime().exec(
 					// Run on my Java6
 					//					"/System/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Home"+
@@ -115,6 +131,8 @@ public class ReloadingJVM {
 							" " + OPTS + " "
 							+ ReloadingJVMCommandProcess.class.getName(),
 					new String[] { OPTS });
+			*/
+			process = Runtime.getRuntime().exec(cmdArray.toArray(new String[cmdArray.size()]));
 			writer = new DataOutputStream(process.getOutputStream());
 			reader = new DataInputStream(process.getInputStream());
 			readerErrors = new DataInputStream(process.getErrorStream());
@@ -183,7 +201,7 @@ public class ReloadingJVM {
 	private JVMOutput captureOutput(String terminationString) {
 		try {
 			long time = System.currentTimeMillis();
-			int timeout = 1000 + (debug ? 60000 : 0); // 1s timeout
+			int timeout = 1000 + (debug ? 60000000 : 0); // 1s timeout
 			byte[] buf = new byte[1024];
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			boolean found = false;
@@ -267,7 +285,7 @@ public class ReloadingJVM {
 			if (DEBUG_CLIENT_SIDE) {
 				System.out.println("(client) copying class to test data directory: " + classname);
 			}
-			String classfile = classname.replaceAll("\\.", File.separator) + ".class";
+			String classfile = classname.replace('.', File.separatorChar) + ".class";
 			File f = new File("../testdata/bin", classfile);
 			if (!f.exists()) {
 				f = new File("../testdata-groovy/bin", classfile);
@@ -279,7 +297,7 @@ public class ReloadingJVM {
 			// Ensure directories exist
 			int dotPos = classname.lastIndexOf(".");
 			if (dotPos != -1) {
-				new File(testdataDirectory, classname.substring(0, dotPos).replaceAll("\\.", File.separator)).mkdirs();
+				new File(testdataDirectory, classname.substring(0, dotPos).replace('.', File.separatorChar)).mkdirs();
 			}
 			Utils.write(new File(testdataDirectory, classfile), data);
 		}
@@ -298,7 +316,7 @@ public class ReloadingJVM {
 		File f = new File("../testdata/jars", fromJarName);
 		//		byte[] data = Utils.load(f);
 		// Ensure directories exist
-		int lastSlash = toJarName.lastIndexOf("/");
+		int lastSlash = toJarName.lastIndexOf('/');
 		if (lastSlash != -1) {
 			new File(testdataDirectory, toJarName.substring(0, lastSlash)).mkdirs();
 		}
@@ -353,7 +371,7 @@ public class ReloadingJVM {
 		//		// Ensure directories exist
 		//		int dotPos = classname.lastIndexOf(".");
 		//		if (dotPos!=-1) {
-		//			new File(testdataDirectory,classname.substring(0,dotPos).replaceAll("\\.",File.separator)).mkdirs();
+		//			new File(testdataDirectory,classname.substring(0,dotPos).replace('.',File.separatorChar)).mkdirs();
 		//		}
 		Utils.write(new File(testdataDirectory, resourcename), data);
 	}
@@ -427,7 +445,7 @@ public class ReloadingJVM {
 	}
 
 	public void updateClass(String string, byte[] newdata) {
-		String classfile = string.replaceAll("\\.", File.separator) + ".class";
+		String classfile = string.replace('.', File.separatorChar) + ".class";
 		Utils.write(new File(testdataDirectory, classfile), newdata);
 	}
 

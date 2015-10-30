@@ -18,6 +18,7 @@ package org.springsource.loaded.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
@@ -37,15 +38,20 @@ public class SpringLoadedTestsInSeparateJVM extends SpringLoadedTests {
 
 	private static ReloadingJVM jvm;
 
+	private static String lineSeparator = System.getProperty("line.separator");
+
 	@BeforeClass
 	public static void startJVM() throws Exception {
 		//		jvm = ReloadingJVM.launch("verbose;explain");
+		assertNotNull(ReloadingJVM.agentJarLocation);
 		jvm = ReloadingJVM.launch("");
 	}
 
 	@AfterClass
 	public static void stopJVM() {
-		jvm.shutdown();
+		if (jvm != null) {
+			jvm.shutdown();
+		}
 	}
 
 	@Override
@@ -75,7 +81,7 @@ public class SpringLoadedTestsInSeparateJVM extends SpringLoadedTests {
 		jvm.copyToTestdataDirectory("issue34.Implementation2");
 		jvm.copyToTestdataDirectory("issue34.Implementation3");
 		JVMOutput output = jvm.run("issue34.Implementation3");
-		assertStdout("Hello World!\n", output);
+		assertStdout("Hello World!" + lineSeparator, output);
 	}
 
 	@Test
@@ -193,21 +199,21 @@ public class SpringLoadedTestsInSeparateJVM extends SpringLoadedTests {
 		// When run here, we see: byteinfo:len=98:crc=c1047cf6
 
 		output = jvm.run("remote.Serialize");
-		assertStdoutContains("check ok\n", output);
+		assertStdoutContains("check ok" + lineSeparator, output);
 
 		// Load new Person
 		jvm.updateClass("remote.Person", retrieveRename("remote.Person", "remote.Person2"));
 		pause(2);
 
 		output = jvm.run("remote.Serialize");
-		assertStdoutContains("check ok\n", output);
+		assertStdoutContains("check ok" + lineSeparator, output);
 
 		// Load original Person
 		jvm.updateClass("remote.Person", loadBytesForClass("remote.Person"));
 		pause(2);
 
 		output = jvm.run("remote.Serialize");
-		assertStdoutContains("check ok\n", output);
+		assertStdoutContains("check ok" + lineSeparator, output);
 	}
 
 	// Deserializing something serialized earlier
@@ -218,11 +224,11 @@ public class SpringLoadedTestsInSeparateJVM extends SpringLoadedTests {
 		JVMOutput output = null;
 
 		output = jvm.run("remote.Serialize");
-		assertStdoutContains("check ok\n", output);
+		assertStdoutContains("check ok" + lineSeparator, output);
 
 		jvm.newInstance("a", "remote.Serialize");
 		JVMOutput jo = jvm.call("a", "checkPredeserializedData");
-		assertStdoutContains("Pre-serialized form checked ok\n", jo);
+		assertStdoutContains("Pre-serialized form checked ok" + lineSeparator, jo);
 	}
 
 	// Deserialize a groovy closure
@@ -238,7 +244,7 @@ public class SpringLoadedTestsInSeparateJVM extends SpringLoadedTests {
 
 		jvm.newInstance("a", "remote.SerializeG");
 		JVMOutput jo = jvm.call("a", "checkPredeserializedData");
-		assertStdoutContains("Pre-serialized groovy form checked ok\n", jo);
+		assertStdoutContains("Pre-serialized groovy form checked ok" + lineSeparator, jo);
 	}
 
 	@Test
@@ -247,7 +253,7 @@ public class SpringLoadedTestsInSeparateJVM extends SpringLoadedTests {
 		jvm.copyToTestdataDirectory("issue34.InnerEnum$MyComparator");
 		jvm.copyToTestdataDirectory("issue34.InnerEnum$sorters$1");
 		JVMOutput output = jvm.run("issue34.InnerEnum");
-		assertStdout("Hello World!\n", output);
+		assertStdout("Hello World!" + lineSeparator, output);
 	}
 
 	@Test
@@ -353,12 +359,14 @@ public class SpringLoadedTestsInSeparateJVM extends SpringLoadedTests {
 		JVMOutput jo = jvm.newInstance("bb", subtype);
 		System.out.println(jo);
 		pause(1);
-		assertStdout("Top.foo() running\nController.foo() running\n", jvm.call("bb", "foo"));
+		assertStdout("Top.foo() running" + lineSeparator + "Controller.foo() running" + lineSeparator,
+				jvm.call("bb", "foo"));
 		pause(1);
 		jvm.updateClass(subtype, retrieveRename(subtype, subtype + "2"));
 		waitForReloadToOccur();
 		jo = jvm.call("bb", "foo");
-		assertStdoutContains("Top.foo() running\nController.foo() running again!\n", jo);
+		assertStdoutContains("Top.foo() running" + lineSeparator + "Controller.foo() running again!" + lineSeparator,
+				jo);
 	}
 
 	/**
@@ -372,10 +380,12 @@ public class SpringLoadedTestsInSeparateJVM extends SpringLoadedTests {
 		jvm.copyToTestdataDirectory(supertype);
 		jvm.copyToTestdataDirectory(subtype);
 		jvm.newInstance("a", subtype);
-		assertStdout("TopB.foo() running\nControllerB.foo() running\n", jvm.call("a", "foo"));
+		assertStdout("TopB.foo() running" + lineSeparator + "ControllerB.foo() running" + lineSeparator,
+				jvm.call("a", "foo"));
 		jvm.updateClass(subtype, retrieveRename(subtype, subtype + "2"));
 		waitForReloadToOccur();
-		assertStdoutContains("TopB.foo() running\nControllerB.foo() running again!\n", jvm.call("a", "foo"));
+		assertStdoutContains("TopB.foo() running" + lineSeparator + "ControllerB.foo() running again!" + lineSeparator,
+				jvm.call("a", "foo"));
 	}
 
 	/**
